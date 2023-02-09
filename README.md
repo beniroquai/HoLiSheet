@@ -174,9 +174,6 @@ IMAGE MISSING
 
 <a href="#logo" name="logo"><img src="./IMAGES/HoLiSheet_24.gif" width="500"></a>
 
-**holographic**
-
-<a href="#logo" name="logo"><img src="./IMAGES/HoLiSheet_25.gif" width="500"></a>
 
 **Light-sheet in ImSwitch**
 
@@ -188,7 +185,24 @@ IMAGE MISSING
 
 **on squid**
 
-<a href="#logo" name="logo"><img src="./IMAGES/HoLiSheet_28.gif" width="500"></a>
+
+<a href="#logo" name="logo"><img src="./IMAGES/HoLiSheet_28.gif" width="500"></a>
+
+
+**Light-sheet and Holography (same sample, simulation)**
+
+<a href="#logo" name="logo"><img src="./IMAGES/results_0.gif" width="500"></a>
+
+**Light-sheet and Holography (different samples)**
+
+<a href="#logo" name="logo"><img src="./IMAGES/results_1.gif" width="500"></a>
+
+
+**Light-sheet and Holography (same samples)**
+
+<a href="#logo" name="logo"><img src="./IMAGES/results_2.gif" width="500"></a>
+
+
 
 
 
