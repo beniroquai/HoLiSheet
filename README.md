@@ -203,6 +203,15 @@ IMAGE MISSING
 <a href="#logo" name="logo"><img src="./IMAGES/results_2.gif" width="500"></a>
 
 
+# Image Processing
+
+## Light-sheet
+
+ You can find a very nice discussion on how to reconstruct the data here:
+ https://forum.image.sc/t/reconstructing-tomographic-light-sheet-data-2d-slice-into-cylindrical-3d-volume/65616/6
+
+
+ Basic idea: fill the 3D space from 2D slices
 
 
 

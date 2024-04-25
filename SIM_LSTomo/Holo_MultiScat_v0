@@ -1,0 +1,195 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+IS_STL = False
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import NanoImagingPack as nip
+import tifffile as tif
+import model as mus
+import scipy
+if IS_STL:
+    from stl import mesh
+    import stl
+
+# Optionally, tweak styles.
+mpl.rc('figure',  figsize=(9, 6))
+mpl.rc('image', cmap='gray')
+#plt.switch_backend('agg')
+
+
+#%%
+
+%gui qt
+import napari
+# Create an empty viewer
+viewer = napari.Viewer()
+#%%                                                    
+''' Define parameters '''
+is_padding = False # better don't do it, some normalization is probably incorrect
+is_display = True
+is_optimization = False 
+is_optimization_psf = False
+is_flip = False
+is_measurement = False
+
+'''Choose between Born (BORN) or BPM (BPM)'''
+#psf_model =  'BORN' # MultiSlice
+#psf_model =  '3QDPC' # MultiSlice
+psf_model =  'BPM' # 1st Born
+
+
+''' Create the Model'''
+Nx=100
+Ny=100
+Nz=100
+lambda0=405e-9
+nEmbb=1.33
+dn_glass=.2
+dn_plankton=.05
+dn=0.1
+NAo=.5
+NAc=.003
+
+
+dxy=lambda0/NAo/4
+dz=dxy*2
+
+
+#%%
+
+# create capillary
+r_capillary=50
+obj_real =  (1*(nip.rr((Nz,Nx))<r_capillary)-1*(nip.rr((Nz,Nx))<r_capillary-2))*dn_glass+nEmbb
+obj_real = np.transpose(np.repeat(np.expand_dims(obj_real,0),Ny,0),[1,2,0])
+
+myallsamples=[]
+
+
+dAngle = 360
+Nrot = 20
+allImages = np.zeros((Nx,Ny,Nz))+0j
+for iangle in range(Nrot):
+    muscat = mus.MuScatModel(size=(Nz,Nx,Ny), dxy=dxy, dz=dz, lambda0=lambda0, 
+                         nEmbb=nEmbb, dn=dn, NAo=NAo, NAc=NAc)
+
+    if 1:
+        # Using an existing stl file: https://sites.google.com/site/drjeffreywkrause/diatom-models
+        rot_angle=iangle/Nrot*dAngle
+        print(rot_angle)
+        scalefctor=.4
+        if IS_STL:
+            obj_3d = mesh.Mesh.from_file('Ceratium_Model.stl')
+            obj_3d.rotate([0,0,1],rot_angle)
+            unique_points = np.unique(obj_3d.points.reshape((obj_3d.points.shape[0] * 3, 3)), axis=0)
+        
+            # scale stl to fit into viewbox
+            unique_points-=np.min(unique_points,0)
+            unique_points/=np.max(unique_points,0)
+            unique_points*=(Nx*scalefctor-1)
+            unique_points = np.int32(np.floor(unique_points))
+            obj=np.zeros((Nz,Nx,Ny))
+            obj[unique_points[:,0],unique_points[:,1],unique_points[:,2]]=1
+        else:
+            obj = np.load("obj.npy")
+            obj = dn_plankton*(nip.rr((Nx,Ny,Nz))<10)+nEmbb
+
+        if 0:            
+            shift_x = Nx//2
+            shift_y = Ny//2+(iangle-Nrot//2)
+            shift_z = Nz//2
+            obj=np.roll(obj,int(shift_x-(Nx*scalefctor)//2),1)
+            obj=np.roll(obj,int(shift_y-(Nx*scalefctor)//2),2)
+            obj=np.roll(obj,int(shift_z-(Nx*scalefctor)//2),0)
+        #obj_real[obj>0]=dn_plankton+nEmbb
+        
+    else:
+        ## add plankton
+        obj_tmp = np.transpose(np.repeat(np.expand_dims((nip.rr((Nz,Nx))<23),0),Ny,0),[1,2,0])
+        obj_real[obj_tmp*np.random.randn(*muscat.size)>2]=dn_plankton+nEmbb
+
+
+
+    # This function is a wrapper to compute the Born fwd-model (convolution)
+    muscat.computesys(obj=obj, is_tomo = False, is_compute_psf=psf_model, is_mictype='BF')
+    # Create Model Instance
+    my3dfield=muscat.computemodel(is_allslices=True)
+    
+    my3dfield = scipy.ndimage.interpolation.rotate(my3dfield, rot_angle, mode='nearest', axes=(0, 1), reshape=False)
+
+
+    if 0:
+        plt.subplot(231),plt.imshow(np.abs(np.squeeze(np.array(muscat.allslices))[:,:,Ny//2])), plt.colorbar()
+        plt.subplot(232),plt.imshow(np.angle(np.squeeze(np.array(muscat.allslices))[:,:,Ny//2])), plt.colorbar()
+        plt.subplot(233),plt.imshow(np.squeeze(np.abs(obj[:,:,Ny//2]))), plt.colorbar()
+        plt.subplot(236),plt.imshow(np.squeeze(np.mean(np.abs(obj),0))), plt.colorbar()
+
+        plt.subplot(234),plt.imshow(np.squeeze(np.abs(my3dfield[:,:,Ny//2]))), plt.colorbar()
+        plt.subplot(235),plt.imshow(np.squeeze(np.abs(my3dfield[Nz//2,:,:]))), plt.colorbar(), plt.show()
+        plt.subplot(236),plt.imshow(np.squeeze(np.mean(np.abs(obj),0))), plt.colorbar()
+
+
+    myallsamples.append(nip.abssqr(my3dfield[Nz//2,:,:]))
+    allImages+=my3dfield
+
+viewer.add_image(np.abs(allImages))
+
+#tif.imsave("tmp.tif",np.array(myallsamples))
+viewer.add_image(np.log(1+np.abs(nip.ft(allImages))))
+
+
+#%%
+
+from fit3Dsphere import *
+
+
+
+#%% Setup parametres
+size3d=(Nx,Ny,Nz)
+img=np.zeros(size3d) #newim(size3d,'scomplex') 
+aproj = np.ones((size3d[0],size3d[1]))
+NAo=muscat.NAo
+lambda0=muscat.lambda0*1e6
+pixelsize=lambda0/NA/4 #muscat.dxy
+pixelsizes=(pixelsize,pixelsize,pixelsize)
+n=1
+allowwraparound=True
+
+
+#  40 subpixel subdivisions
+# 2*10+1 kernelsize
+# 20 pixel bordersize in all directions
+# 1500 iterations
+#%% Compute LUT
+
+NA=.5
+lambda0=0.450
+pixelsize=lambda0/NA/4
+
+
+imatrix=IterateCoefficients(subpix=40,CutoffK=10,TotalSize=size3d[-1],RollOff=20,Iterations=1000)
+#%% MAP LUT in 3d space
+indexList2D,fullIndex3D,factorList,amask=FillProjSpherePrepare(size3d,lambda0,pixelsizes,NAo,imatrix,n=n,allowwraparound=allowwraparound)
+
+
+
+#%% rotate image in 3D around the rotational axis
+
+allAngles = []
+allFT = np.zeros(size3d)+0j
+
+for iangle in range(Nrot):
+    rot_angle=iangle/Nrot*dAngle
+    print(rot_angle)
+    aproj = nip.ft(myallsamples[iangle])
+    #% Map image to LUT in 3D 
+    img = nip.image(size3d)+0j
+    img = FillProjSphere(img,aproj,np.int32(indexList2D),fullIndex3D,factorList) # Just a circular wave
+    img = np.roll(img, size3d[0]//2, 0)
+    img = scipy.ndimage.interpolation.rotate(img, rot_angle, mode='nearest', axes=(0, 1), reshape=False)
+    allFT += img
+    viewer.add_image(np.log(1+np.abs(img)))
+#    plt.imshow(np.log(1+np.abs(img[:,size3d[1]//2,:])))
+img_Ft = nip.ft(img) 
+
+viewer.add_image(np.real(img_Ft))
