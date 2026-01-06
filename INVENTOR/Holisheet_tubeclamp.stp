@@ -10,11 +10,11 @@ FILE_DESCRIPTION(
 
 FILE_NAME(
 /* name */ 'Holisheet_tubeclamp.stp',
-/* time_stamp */ '2024-08-13T14:25:51+02:00',
-/* author */ ('diederichbenedict'),
+/* time_stamp */ '2025-08-08T09:49:13+02:00',
+/* author */ ('benir'),
 /* organization */ (''),
 /* preprocessor_version */ 'ST-DEVELOPER v20',
-/* originating_system */ 'Autodesk Inventor 2024',
+/* originating_system */ 'Autodesk Inventor 2025',
 /* authorisation */ '');
 
 FILE_SCHEMA (('AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }'));
@@ -357,7 +357,7 @@ POSITIVE_RATIO_MEASURE(1.),#330);
 #333=PROPERTY_DEFINITION_REPRESENTATION(#338,#335);
 #334=REPRESENTATION('material name',(#336),#563);
 #335=REPRESENTATION('density',(#331),#563);
-#336=DESCRIPTIVE_REPRESENTATION_ITEM('Generisch','Generisch');
+#336=DESCRIPTIVE_REPRESENTATION_ITEM('Generic','Generic');
 #337=PROPERTY_DEFINITION('material property','material name',#573);
 #338=PROPERTY_DEFINITION('material property','density of part',#573);
 #339=DATE_TIME_ROLE('creation_date');
